@@ -2,6 +2,14 @@
 # Test a Django project on multiple versions of Python.
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+
 pool:
   vmImage: 'Ubuntu 16.04'
 
@@ -39,8 +47,22 @@ steps:
   condition: succeededOrFailed()
   displayName: 'Run tests'
 
-- task: PublishTestResults@2
-  condition: succeededOrFailed()
+- task: PublishBuildArtifacts@1
   inputs:
-    testResultsFiles: "**/TEST-*.xml"
-    testRunTitle: 'Python $(PYTHON_VERSION)'
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+- stage: Deploy
+  jobs:
+  - job: Deploy
+    pool:
+    vmimage: ubuntu latest
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Trader EA-MSDN - CI(3fcc6bc0-2452-47f2-9487-bf20529143dc)'
+    appType: 'webApp'
+    WebAppName: 'kenn-demo3'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
